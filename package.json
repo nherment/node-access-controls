@@ -1,0 +1,25 @@
+{
+  "name": "access-controls",
+  "version": "0.1.0",
+  "description": "rule based access-controls engine for node.js (browser compatible)",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/nherment/node-access-controls.git"
+  },
+  "keywords": [
+    "access",
+    "control",
+    "rules",
+    "permissions"
+  ],
+  "author": "Nicolas Herment <nherment@gmail.com>",
+  "license": "Public Domain",
+  "bugs": {
+    "url": "https://github.com/nherment/node-access-controls/issues"
+  },
+  "homepage": "https://github.com/nherment/node-access-controls"
+}
