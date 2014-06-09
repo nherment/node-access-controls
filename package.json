@@ -21,5 +21,10 @@
   "bugs": {
     "url": "https://github.com/nherment/node-access-controls/issues"
   },
-  "homepage": "https://github.com/nherment/node-access-controls"
+  "homepage": "https://github.com/nherment/node-access-controls",
+  "dependencies": {
+    "mocha": "1.20.1",
+    "underscore": "1.6.0",
+    "object-tree": "0.2.4"
+  }
 }
