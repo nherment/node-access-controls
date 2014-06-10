@@ -4,6 +4,7 @@
   "description": "rule based access-controls engine for node.js (browser compatible)",
   "main": "index.js",
   "scripts": {
+    "prepublish": "rm -f dist/*.js && node script/exportBrowserLibrary.js",
     "test": "mocha test --reporter spec"
   },
   "repository": {
@@ -23,8 +24,11 @@
   },
   "homepage": "https://github.com/nherment/node-access-controls",
   "dependencies": {
+    "object-tree": "0.2.5",
+    "lodash": "2.4.1"
+  },
+  "devDependencies": {
     "mocha": "1.20.1",
-    "underscore": "1.6.0",
-    "object-tree": "0.2.4"
+    "browserify": "4.1.8"
   }
 }
