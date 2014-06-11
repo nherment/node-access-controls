@@ -33,7 +33,7 @@ function AccessControlList(conf) {
 
   // create a map for O(1) speed
   this._actions = {}
-  if(conf.actions && typeof conf.actions === 'string') {
+  if(conf.actions && _.isArray(conf.actions)) {
     for(var i = 0 ; i < conf.actions.length ; i++) {
       this._actions[conf.actions[i]] = true
     }
@@ -194,10 +194,12 @@ AccessControlList.prototype._rolesMatch = function(expectedRoles, actualRoles) {
     // TODO: optimize this O(N square) into at least a O(N)
     for(var i = 0 ; i < expectedRoles.length ; i++) {
       var match = false
-      for(var j = 0 ; j < actualRoles.length ; j++) {
-        if(actualRoles[j] === expectedRoles[i]) {
-          match = true
-          break
+      if(actualRoles) {
+        for(var j = 0 ; j < actualRoles.length ; j++) {
+          if(actualRoles[j] === expectedRoles[i]) {
+            match = true
+            break
+          }
         }
       }
       if(!match) {
@@ -292,6 +294,8 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
           err: err || null,
           reason: result ? result.reason : null
         })
+
+        //console.log(obj, action, roles, JSON.stringify(result))
 
         if(err || !result) {
           details.authorize = false

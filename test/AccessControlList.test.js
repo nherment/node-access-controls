@@ -19,7 +19,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'rw',
+      actions: ['load', 'save'],
       conditions: [{
           attributes: {
             'nested.region': 'EMEA'
@@ -28,25 +28,25 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
-    assert.ok(acl.shouldApply(obj, 'w').ok)
-    assert.ok(!acl.shouldApply(obj, 'd').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+    assert.ok(acl.shouldApply(obj, 'save').ok)
+    assert.ok(!acl.shouldApply(obj, 'remove').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
 
       assert.ok(!err, err)
 
       assert.ok(result)
       assert.ok(result.authorize)
 
-      acl.authorize(obj, 'd', ['EMEA'], {}, function(err, result) {
+      acl.authorize(obj, 'remove', ['EMEA'], {}, function(err, result) {
 
         assert.ok(!err, err)
 
         assert.ok(result)
         assert.ok(result.authorize)
 
-        acl.authorize(obj, 'r', ['APAC'], {}, function(err, result) {
+        acl.authorize(obj, 'load', ['APAC'], {}, function(err, result) {
 
           assert.ok(!err, err)
 
@@ -71,7 +71,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'region': 'EMEA'
@@ -80,11 +80,11 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
-    assert.ok(!acl.shouldApply(obj, 'w').ok)
-    assert.ok(!acl.shouldApply(obj, 'd').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+    assert.ok(!acl.shouldApply(obj, 'save').ok)
+    assert.ok(!acl.shouldApply(obj, 'remove').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
 
       assert.ok(!err, err)
 
@@ -107,27 +107,27 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['granted'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: []
     })
 
-    assert.ok(acl.shouldApply(obj1, 'r').ok)
-    assert.ok(!acl.shouldApply(obj1, 'w').ok)
-    assert.ok(!acl.shouldApply(obj1, 'd').ok)
+    assert.ok(acl.shouldApply(obj1, 'load').ok)
+    assert.ok(!acl.shouldApply(obj1, 'save').ok)
+    assert.ok(!acl.shouldApply(obj1, 'remove').ok)
 
-    assert.ok(acl.shouldApply(obj2, 'r').ok)
-    assert.ok(!acl.shouldApply(obj2, 'w').ok)
-    assert.ok(!acl.shouldApply(obj2, 'd').ok)
+    assert.ok(acl.shouldApply(obj2, 'load').ok)
+    assert.ok(!acl.shouldApply(obj2, 'save').ok)
+    assert.ok(!acl.shouldApply(obj2, 'remove').ok)
 
 
-    acl.authorize(obj1, 'r', ['granted'], {}, function(err, result) {
+    acl.authorize(obj1, 'load', ['granted'], {}, function(err, result) {
 
       assert.ok(!err, err)
 
       assert.ok(result)
       assert.ok(result.authorize)
 
-      acl.authorize(obj2, 'r', ['denied'], {}, function(err, result) {
+      acl.authorize(obj2, 'load', ['denied'], {}, function(err, result) {
 
         assert.ok(!err, err)
 
@@ -152,7 +152,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'owner': '{user.id}'
@@ -161,11 +161,11 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
-    assert.ok(!acl.shouldApply(obj, 'w').ok)
-    assert.ok(!acl.shouldApply(obj, 'd').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+    assert.ok(!acl.shouldApply(obj, 'save').ok)
+    assert.ok(!acl.shouldApply(obj, 'remove').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
       assert.ok(!err, err)
 
@@ -173,7 +173,7 @@ describe('access control list', function() {
       assert.ok(result.authorize)
 
       obj.owner = 1234
-      acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+      acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
         assert.ok(!err, err)
 
@@ -198,7 +198,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [
         '{user::owner}',
         {
@@ -209,9 +209,9 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
       assert.ok(!err, err)
 
@@ -226,7 +226,7 @@ describe('access control list', function() {
       assert.equal(result.inherit[0].entity.name, 'user')
 
       obj.owner = 1234
-      acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+      acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
         assert.ok(!err, err)
 
@@ -250,7 +250,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [
         '{sys/user::owner}',
         {
@@ -261,9 +261,9 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
       assert.ok(!err, err)
 
@@ -278,7 +278,7 @@ describe('access control list', function() {
       assert.equal(result.inherit[0].entity.name, 'user')
 
       obj.owner = 1234
-      acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+      acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
         assert.ok(!err, err)
 
@@ -302,7 +302,7 @@ describe('access control list', function() {
       name: 'acl1_required',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [
         '{zone-1/sys/user::owner}',
         {
@@ -313,9 +313,9 @@ describe('access control list', function() {
       ]
     })
 
-    assert.ok(acl.shouldApply(obj, 'r').ok)
+    assert.ok(acl.shouldApply(obj, 'load').ok)
 
-    acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+    acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
       assert.ok(!err, err)
 
@@ -330,7 +330,7 @@ describe('access control list', function() {
       assert.equal(result.inherit[0].entity.name, 'user')
 
       obj.owner = 1234
-      acl.authorize(obj, 'r', ['EMEA'], {user: {id: 123}}, function(err, result) {
+      acl.authorize(obj, 'load', ['EMEA'], {user: {id: 123}}, function(err, result) {
 
         assert.ok(!err, err)
 

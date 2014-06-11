@@ -12,7 +12,7 @@ describe('access controls', function() {
       name: 'EMEA_region',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'region': 'EMEA'
@@ -23,7 +23,7 @@ describe('access controls', function() {
       name: 'legal_group',
       roles: ['legal'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'group': 'legal'
@@ -34,7 +34,7 @@ describe('access controls', function() {
       name: 'admin all access',
       roles: ['admin'],
       control: 'sufficient',
-      actions: 'rw'
+      actions: ['load', 'save']
     }]
 
     var procedure1 = new AccessControlProcedure(accessControlList1)
@@ -54,7 +54,7 @@ describe('access controls', function() {
 
     it('match', function(done) {
 
-      procedure1.authorize(emeaLegal, 'r', ['EMEA', 'legal'], {}, function(err, result) {
+      procedure1.authorize(emeaLegal, 'load', ['EMEA', 'legal'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -69,7 +69,7 @@ describe('access controls', function() {
 
     it('rejected by the second required', function(done) {
 
-      procedure1.authorize(emeaLegal, 'r', ['EMEA'], {}, function(err, result) {
+      procedure1.authorize(emeaLegal, 'load', ['EMEA'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -86,7 +86,7 @@ describe('access controls', function() {
 
     it('rejected by the first required', function(done) {
 
-      procedure1.authorize(emeaLegal, 'r', ['legal'], {}, function(err, result) {
+      procedure1.authorize(emeaLegal, 'load', ['legal'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -103,7 +103,7 @@ describe('access controls', function() {
 
     it('no conditions "sufficient" in ACL gives all access', function(done) {
 
-      procedure1.authorize(emeaLegal, 'r', ['admin'], {}, function(err, result) {
+      procedure1.authorize(emeaLegal, 'load', ['admin'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -127,7 +127,7 @@ describe('access controls', function() {
       name: 'EMEA_region',
       roles: ['EMEA'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'region': 'EMEA'
@@ -138,17 +138,17 @@ describe('access controls', function() {
       name: 'admin all access',
       roles: ['admin'],
       control: 'sufficient',
-      actions: 'rw'
+      actions: ['load', 'save']
     }, {
       name: 'does_not_exist all access',
       roles: ['requisite'],
       control: 'requisite',
-      actions: 'rw'
+      actions: ['load', 'save']
     }, {
       name: 'never_used_all_access',
       roles: ['all_access'],
       control: 'sufficient',
-      actions: 'rw'
+      actions: ['load', 'save']
     }]
 
     var procedure2 = new AccessControlProcedure(accessControlList2)
@@ -159,7 +159,7 @@ describe('access controls', function() {
 
     it('match', function(done) {
 
-      procedure2.authorize(emea, 'r', ['EMEA', 'requisite'], {}, function(err, result) {
+      procedure2.authorize(emea, 'load', ['EMEA', 'requisite'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -175,7 +175,7 @@ describe('access controls', function() {
 
     it('no conditions "sufficient" in ACL gives all access', function(done) {
 
-      procedure2.authorize(emea, 'r', ['admin'], {}, function(err, result) {
+      procedure2.authorize(emea, 'load', ['admin'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
@@ -192,7 +192,7 @@ describe('access controls', function() {
 
     it('"requisite" is absolutely mandatory', function(done) {
 
-      procedure2.authorize(emea, 'r', ['EMEA', 'all_access'], {}, function(err, result) {
+      procedure2.authorize(emea, 'load', ['EMEA', 'all_access'], {}, function(err, result) {
         if(err) {
           return done(err)
         }
