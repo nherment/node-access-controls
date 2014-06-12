@@ -521,6 +521,58 @@ describe('access control list', function() {
 
     })
 
+
+    it('does not filter when the conditions are not met', function(done) {
+
+      var obj = {date: Date.now(), region: 'APAC', sin: '123-456-789'}
+
+      var acl = new AccessControlList({
+        name: 'acl2_filter',
+        roles: ['EMEA'],
+        control: 'filter',
+        actions: ['load'],
+        conditions: [{
+            attributes: {
+              'region': 'EMEA'
+            }
+          }
+        ],
+        filters: {
+          sin: function(value) {
+            if(value && value.length > 0) {
+              return '***-***-' + value.substr(-3)
+            } else {
+              return '***-***-***'
+            }
+          }
+        }
+      })
+
+
+      acl.authorize(obj, 'load', ['APAC'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(!result.filters)
+
+        acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
+
+          assert.ok(!err, err)
+
+          assert.ok(result)
+          assert.ok(result.authorize)
+          assert.ok(!result.filters)
+
+          done()
+
+        })
+
+      })
+
+    })
+
   })
 
 
