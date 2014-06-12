@@ -39,6 +39,10 @@ function AccessControlList(conf) {
     }
   }
 
+  if(conf.filters) {
+    this._filters = conf.filters
+  }
+
   this._conditions = conf.conditions || []
 
   this._objectParser = new OTParser()
@@ -78,6 +82,7 @@ AccessControlList.prototype._conditionsMatch = function(obj, context) {
       totalMatch.ok = undefined
     } else if(match.ok === false && totalMatch.ok !== undefined) {
       totalMatch.ok = false
+      totalMatch.reason = 'Condition #'+i+' does not match'
     }
 
     if(match.inherit) {
@@ -86,6 +91,36 @@ AccessControlList.prototype._conditionsMatch = function(obj, context) {
     }
   }
   return totalMatch
+}
+
+AccessControlList.prototype._filter = function(obj) {
+  if(this._filters) {
+    var filters = []
+    for(var attr in this._filters) {
+      var filter = this._applyFilter(this._filters[attr], obj, attr)
+
+      filters.push(filter)
+    }
+    return filters
+  }
+
+}
+
+AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
+  var filterResult = {}
+  filterResult.attribute = attribute
+  if(!filter) {
+    filterResult.access = 'denied'
+    filterResult.originalValue = obj[attribute]
+  } else if(typeof filter === 'function') {
+    filterResult.access = 'partial'
+    filterResult.originalValue = obj[attribute]
+    filterResult.filteredValue = filter(obj[attribute])
+  } else {
+    throw new Error('unsupported filter', filter)
+  }
+  return filterResult
+
 }
 
 AccessControlList.prototype._conditionMatch = function(condition, obj, context) {
@@ -152,37 +187,47 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   var reason = ''
   var inherit = []
   var shouldApply = this.shouldApply(obj, action)
+  var filters = null
   if(shouldApply.ok) {
 
-      var conditionsMatch = this._conditionsMatch(obj, context)
-      if(conditionsMatch.inherit) {
-        inherit = inherit.concat(conditionsMatch.inherit)
-      }
+    var conditionsMatch = this._conditionsMatch(obj, context)
+    if(conditionsMatch.inherit) {
+      inherit = inherit.concat(conditionsMatch.inherit)
+    }
 
+    if(conditionsMatch.ok === false) {
 
-      if(conditionsMatch.ok === false) {
+      authorize = false
+      reason    = conditionsMatch.reason
 
-        authorize = false
-        reason = conditionsMatch.reason
+    } else if(conditionsMatch.ok === true) {
 
-      } else if(conditionsMatch.ok === true) {
+      var rolesMatch = this._rolesMatch(this._roles, roles)
+      authorize = rolesMatch.ok
+      reason    = rolesMatch.reason || 'roles mismatch'
 
-        var rolesMatch = this._rolesMatch(this._roles, roles)
-        authorize = rolesMatch.ok
-        reason    = rolesMatch.reason
+    } else {
+      // conditions say this ACL does not apply
+      authorize = true
+      reason    = conditionsMatch.reason || 'ACL conditions do not apply'
+    }
 
-      } else {
-        // conditions say this ACL does not apply
-        authorize = true
-        reason    = conditionsMatch.reason
-      }
   } else {
     reason    = shouldApply.reason
     authorize = true
   }
 
+  if(!authorize) {
+    filters = this._filter(obj)
+    if(this.control() === 'filter') {
+      // filters allways pass but add a filter
+      authorize = true
+      reason = 'applying filter because the roles do not match'
+    }
+  }
+
   setImmediate(function() {
-    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit})
+    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters})
   })
 }
 
@@ -309,6 +354,15 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
         var stop = false
 
         switch(accessControl.control()) {
+          case 'filter':
+
+            if(!details.filters) {
+              details.filters = []
+            }
+            if(result.filters) {
+              details.filters = details.filters.concat(result.filters)
+            }
+            break
           case 'requisite':
             if(!result.authorize) {
               details.authorize = false
@@ -341,6 +395,26 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   } else {
     callback(undefined, details)
   }
+}
+
+AccessControlProcedure.prototype.applyFilters = function(filters, obj) {
+
+  if(filters && filters.length > 0) {
+    for(var i = 0 ; i < filters.length ; i++) {
+      var filter = filters[i]
+
+      switch(filter.access) {
+        case 'denied':
+          delete obj[filter.attribute]
+          break
+        case 'partial':
+          obj[filter.attribute] = filter.filteredValue
+          break
+      }
+
+    }
+  }
+
 }
 
 module.exports = AccessControlProcedure
