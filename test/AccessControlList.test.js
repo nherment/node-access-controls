@@ -346,5 +346,182 @@ describe('access control list', function() {
 
   })
 
+  describe('attributes filtering', function() {
+
+    it('denied', function(done) {
+
+      var obj = {date: Date.now(), region: 'EMEA'}
+
+      var acl = new AccessControlList({
+        name: 'acl1_filter',
+        roles: ['EMEA'],
+        control: 'filter',
+        actions: ['load'],
+        conditions: [{
+            attributes: {
+              'region': 'EMEA'
+            }
+          }
+        ],
+        filters: {
+          region: false
+        }
+      })
+
+      acl.authorize(obj, 'load', ['APAC'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(result.filters)
+        assert.equal(result.filters.length, 1)
+        assert.equal(result.filters[0].attribute, 'region')
+        assert.equal(result.filters[0].access, 'denied')
+
+
+        acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
+
+          assert.ok(!err, err)
+
+          assert.ok(result)
+          assert.ok(result.authorize)
+          assert.ok(!result.filters)
+
+          done()
+
+        })
+
+      })
+
+
+    })
+
+    it('mask', function(done) {
+
+      var obj = {date: Date.now(), region: 'EMEA', sin: '123-456-789'}
+
+      var acl = new AccessControlList({
+        name: 'acl2_filter',
+        roles: ['EMEA'],
+        control: 'filter',
+        actions: ['load'],
+        conditions: [{
+            attributes: {
+              'region': 'EMEA'
+            }
+          }
+        ],
+        filters: {
+          sin: function(value) {
+            if(value && value.length > 0) {
+              return '***-***-' + value.substr(-3)
+            } else {
+              return '***-***-***'
+            }
+          }
+        }
+      })
+
+
+      acl.authorize(obj, 'load', ['APAC'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(result.filters)
+        assert.equal(result.filters.length, 1)
+        assert.equal(result.filters[0].attribute, 'sin')
+        assert.equal(result.filters[0].access, 'partial')
+        assert.equal(result.filters[0].filteredValue, '***-***-789')
+        assert.equal(result.filters[0].originalValue, '123-456-789')
+
+        acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
+
+          assert.ok(!err, err)
+
+          assert.ok(result)
+          assert.ok(result.authorize)
+          assert.ok(!result.filters)
+
+          done()
+
+        })
+
+      })
+
+    })
+
+
+    it('mask, denied and non existing attr', function(done) {
+
+      var obj = {date: Date.now(), region: 'EMEA', sin: '123-456-789'}
+
+      var acl = new AccessControlList({
+        name: 'acl2_filter',
+        roles: ['EMEA'],
+        control: 'filter',
+        actions: ['load'],
+        conditions: [{
+            attributes: {
+              'region': 'EMEA'
+            }
+          }
+        ],
+        filters: {
+          foo: false,
+          region: false,
+          sin: function(value) {
+            if(value && value.length > 0) {
+              return '***-***-' + value.substr(-3)
+            } else {
+              return '***-***-***'
+            }
+          }
+        }
+      })
+
+
+      acl.authorize(obj, 'load', ['APAC'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(result.filters)
+        assert.equal(result.filters.length, 3)
+
+        assert.equal(result.filters[0].attribute, 'foo')
+        assert.equal(result.filters[0].access, 'denied')
+        assert.equal(result.filters[0].originalValue, undefined)
+
+        assert.equal(result.filters[1].attribute, 'region')
+        assert.equal(result.filters[1].access, 'denied')
+        assert.equal(result.filters[1].originalValue, 'EMEA')
+
+        assert.equal(result.filters[2].attribute, 'sin')
+        assert.equal(result.filters[2].access, 'partial')
+        assert.equal(result.filters[2].filteredValue, '***-***-789')
+        assert.equal(result.filters[2].originalValue, '123-456-789')
+
+        acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
+
+          assert.ok(!err, err)
+
+          assert.ok(result)
+          assert.ok(result.authorize)
+          assert.ok(!result.filters)
+
+          done()
+
+        })
+
+      })
+
+    })
+
+  })
+
 
 })
