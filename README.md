@@ -81,7 +81,7 @@ Examples:
           name: 'foobar'
         }],
         control: 'required',
-        actions: 'crudq',
+        actions: ['save', 'load', 'list', 'remove'],
         conditions: []
       },{
         name: 'access to foobar EMEA entities',
@@ -92,7 +92,7 @@ Examples:
           name: 'foobar'
         }],
         control: 'required',
-        actions: 'crud',
+        actions: ['save', 'load', 'list', 'remove'],
         conditions: [{
             attributes: {
               'region': 'EMEA'
@@ -108,7 +108,7 @@ Examples:
           name: 'item'
         }],
         control: 'required',
-        actions: 'r',
+        actions: ['load'],
         conditions: [{
             attributes: {
               'status': 'private'
@@ -118,6 +118,49 @@ Examples:
       }]
     })
 ```
+
+### Field level access/masking
+
+Field masking works a bit differently compared to other ACLs.
+
+It is possible to mask or deny access to specific fields IF the access roles are not met.
+
+For example:
+
+    si.use( '..', {
+      accessControls: [{
+        name: 'access to foobar entities',
+        roles: ['foobar', 'ssn'],
+        entities: [{
+          zone: undefined,
+          base: undefined,
+          name: 'foobar'
+        }],
+        control: 'filter',
+        actions: ['load'],
+        conditions: [{
+            attributes: {
+              'status': 'private'
+            }
+          }
+        ],
+        filters: {
+          lastName: false,
+          ssn: function(value) {
+            if(value) {
+              value = '***-***-' + value.substr(-4)
+            }
+          }
+        }
+      }]
+    })
+
+Will:
+
+- mask the field ```ssn``` and only display the last 4 digits
+- completely hide the field ```lastName```
+
+for all access except those with roles ```foobar``` and ```ssn```.
 
 ### manual validation
 
@@ -145,7 +188,7 @@ For this, you can reference the current user in an ACL:
           name: 'todo'
         }],
         control: 'required',
-        actions: 'crud',
+        actions: ['save', 'load', 'list', 'remove'],
         conditions: [{
             attributes: {
               'owner': '{user.id}'
