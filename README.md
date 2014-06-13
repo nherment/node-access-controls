@@ -17,9 +17,13 @@ Use the file in dist/access-controls.js
     var procedure = new AccessControls(accessControlList)
 
     procedure.authorize(obj, action, roles, context, function(err, authDecision) {
-      // authDecision:
+      // authDecision attributes
       // authorize: true | false
-      //
+      // history: a list of the ACLs run
+      // inherit: if there is an inheritance condition to access this entity
+      // filters: an array of filters if some fields need filtering.
+      //          You can use procedure.applyFilters(authDecision.filters, obj) to
+      //          apply them
     })
 
 
