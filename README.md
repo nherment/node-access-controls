@@ -3,7 +3,25 @@
 
 # install
 
+### node.js
+
     npm install --save access-controls
+
+### browser
+
+Use the file in dist/access-controls.js
+
+    <script src="access-controls.js"></script>
+
+
+    var procedure = new AccessControls(accessControlList)
+
+    procedure.authorize(obj, action, roles, context, function(err, authDecision) {
+      // authDecision:
+      // authorize: true | false
+      //
+    })
+
 
 # Usage
 
