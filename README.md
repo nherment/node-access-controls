@@ -44,7 +44,7 @@ Use the file in dist/access-controls.js
       name: 'legal_group',
       roles: ['legal'],
       control: 'required',
-      actions: 'r',
+      actions: ['load'],
       conditions: [{
           attributes: {
             'group': 'legal'
@@ -55,7 +55,7 @@ Use the file in dist/access-controls.js
       name: 'admin all access',
       roles: ['admin'],
       control: 'sufficient',
-      actions: 'rw'
+      actions: ['load', 'list', 'save', 'remove']
     }]
 
     var procedure = new AccessControlProcedure(accessControlList)
