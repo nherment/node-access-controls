@@ -10,7 +10,3 @@ var require = function(module) {
         throw new Error('Could not find module ' + module)
     }
 };
-
-function setImmediate(cb) {
-    setTimeout(cb)
-};
