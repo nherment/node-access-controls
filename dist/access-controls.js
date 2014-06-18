@@ -82,7 +82,11 @@ AccessControlList.prototype._conditionsMatch = function(obj, context) {
       totalMatch.ok = undefined
     } else if(match.ok === false && totalMatch.ok !== undefined) {
       totalMatch.ok = false
-      totalMatch.reason = 'Condition #'+i+' does not match'
+      if(match.reason) {
+        totalMatch.reason = match.reason
+      } else {
+        totalMatch.reason = 'Condition #'+i+' does not match ==> '+ JSON.stringify(condition)
+      }
     }
 
     if(match.inherit) {
@@ -116,6 +120,33 @@ AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
     filterResult.access = 'partial'
     filterResult.originalValue = obj[attribute]
     filterResult.filteredValue = filter(obj[attribute])
+  } else if(_.isNumber(filter)) {
+    if(_.isString(obj[attribute])) {
+      filterResult.access = 'partial'
+      filterResult.originalValue = obj[attribute]
+      var fullMask = filterResult.originalValue.replace(/./g, '*')
+      var maskedValue
+      if(filter > 0) {
+        // N = filter
+        // mask all but the 'N' first characters
+        maskedValue = filterResult.originalValue.substr(0, filter)
+        if(fullMask.length > filter) {
+          maskedValue += fullMask.substr(filter)
+        }
+      } else if(filter < 0) {
+        // N = filter
+        // mask all but the 'N' last characters
+        maskedValue = filterResult.originalValue.substr(filter)
+        if(fullMask.length > (-filter)) {
+          maskedValue = fullMask.substr(0, fullMask.length + filter) + maskedValue
+        }
+      }
+      filterResult.filteredValue = maskedValue
+    } else {
+      console.warn('trying to apply replace filter on a value that is not a string. Denying access to field ['+attribute+'].')
+      filterResult.access = 'denied'
+      filterResult.originalValue = obj[attribute]
+    }
   } else {
     throw new Error('unsupported filter', filter)
   }
@@ -151,6 +182,7 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
 
     var data = condition.slice(1, condition.length-1).split('::')
     var referencedId = this._objectParser.lookup(data[1], obj)
+
     var typeData = data[0].split('/')
 
     if(!referencedId) {
@@ -325,6 +357,10 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   if(!details.inherit) {
     details.inherit = []
   }
+  details.context = context
+  details.roles   = roles
+  details.action  = action
+  details.target  = obj
   var self = this
 
   if(accessControls && accessControls.length > 0) {
@@ -342,7 +378,7 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
           reason: result ? result.reason : null
         })
 
-        //console.log(obj, action, roles, JSON.stringify(result))
+        // console.log(obj, action, roles, JSON.stringify(result))
 
         if(err || !result) {
           details.authorize = false

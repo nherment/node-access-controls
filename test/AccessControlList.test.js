@@ -399,7 +399,7 @@ describe('access control list', function() {
 
     it('mask', function(done) {
 
-      var obj = {date: Date.now(), region: 'EMEA', sin: '123-456-789'}
+      var obj = {date: Date.now(), region: 'EMEA', sin: '123-456-789', ssn1: '123-456-7890', ssn2: '123-456-7890', ssn3: '123-456-7890'}
 
       var acl = new AccessControlList({
         name: 'acl2_filter',
@@ -419,7 +419,11 @@ describe('access control list', function() {
             } else {
               return '***-***-***'
             }
-          }
+          },
+          ssn1: -4, // mask all except the last 4 characters
+          ssn2: 3,  // mask all except the first 3 characters
+          ssn3: -50,
+          ssn4: 12
         }
       })
 
@@ -431,11 +435,30 @@ describe('access control list', function() {
         assert.ok(result)
         assert.ok(result.authorize)
         assert.ok(result.filters)
-        assert.equal(result.filters.length, 1)
+        assert.equal(result.filters.length, 5)
         assert.equal(result.filters[0].attribute, 'sin')
         assert.equal(result.filters[0].access, 'partial')
-        assert.equal(result.filters[0].filteredValue, '***-***-789')
         assert.equal(result.filters[0].originalValue, '123-456-789')
+        assert.equal(result.filters[0].filteredValue, '***-***-789')
+
+        assert.equal(result.filters[1].attribute, 'ssn1')
+        assert.equal(result.filters[1].access, 'partial')
+        assert.equal(result.filters[1].originalValue, '123-456-7890')
+        assert.equal(result.filters[1].filteredValue, '********7890')
+
+        assert.equal(result.filters[2].attribute, 'ssn2')
+        assert.equal(result.filters[2].access, 'partial')
+        assert.equal(result.filters[2].originalValue, '123-456-7890')
+        assert.equal(result.filters[2].filteredValue, '123*********')
+
+        assert.equal(result.filters[3].attribute, 'ssn3')
+        assert.equal(result.filters[3].access, 'partial')
+        assert.equal(result.filters[3].originalValue, '123-456-7890')
+        assert.equal(result.filters[3].filteredValue, '123-456-7890')
+
+        assert.equal(result.filters[4].attribute, 'ssn4')
+        assert.equal(result.filters[4].access, 'denied')
+        assert.equal(result.filters[4].originalValue, undefined)
 
         acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
 
