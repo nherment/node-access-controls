@@ -357,6 +357,8 @@ AccessControlProcedure.generateActionsMapping = function(accessControls) {
         // TODO: differentiate create from update
         switch(actions[k]) {
           case 'save':
+          case 'save_new':
+          case 'save_existing':
             argsMatching.cmd = 'save'
             break
           case 'load':
