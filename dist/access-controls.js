@@ -4,9 +4,10 @@ module.exports = _dereq_('./lib/AccessControlProcedure.js')
 
 },{"./lib/AccessControlProcedure.js":3}],2:[function(_dereq_,module,exports){
 
+var setImmediateShim = setTimeout
 // browser shim
-if(typeof setImmediate === 'undefined') {
-  var setImmediate = setTimeout
+if(typeof setImmediate !== 'undefined') {
+  setImmediateShim = setImmediate
 }
 
 //   var perm = {
@@ -269,7 +270,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
     }
   }
 
-  setImmediate(function() {
+  setImmediateShim(function() {
     callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters})
   })
 }
