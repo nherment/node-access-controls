@@ -599,4 +599,55 @@ describe('access control list', function() {
   })
 
 
+  it('write denied', function(done) {
+
+    var obj = {date: Date.now(), region: 'EMEA'}
+
+    var acl = new AccessControlList({
+      name: 'acl1_filter',
+      roles: ['EMEA'],
+      control: 'filter',
+      actions: ['save_new'],
+      conditions: [{
+          attributes: {
+            'region': 'EMEA'
+          }
+        }
+      ],
+      filters: {
+        region: false
+      }
+    })
+
+    acl.authorize(obj, 'save_new', ['APAC'], {}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(result.authorize)
+      assert.ok(result.filters)
+      assert.equal(result.filters.length, 1)
+      assert.equal(result.filters[0].attribute, 'region')
+      assert.equal(result.filters[0].access, 'denied')
+
+
+      acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(!result.filters)
+
+        done()
+
+      })
+
+    })
+
+
+  })
+
+
+
 })
