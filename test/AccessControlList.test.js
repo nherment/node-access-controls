@@ -649,5 +649,56 @@ describe('access control list', function() {
   })
 
 
+  it('remove denied', function(done) {
+
+    var obj = {date: Date.now(), region: 'EMEA'}
+
+    var acl = new AccessControlList({
+      name: 'acl1_filter',
+      roles: ['EMEA'],
+      control: 'required',
+      actions: ['remove'],
+      conditions: [{
+          attributes: {
+            'region': 'EMEA'
+          }
+        }
+      ]
+    })
+
+    acl.authorize(obj, 'save_new', ['EMEA'], {}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(result.authorize)
+
+
+      acl.authorize(obj, 'remove', ['APAC'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(!result.authorize)
+
+        acl.authorize(obj, 'remove', ['EMEA'], {}, function(err, result) {
+
+          assert.ok(!err, err)
+
+          assert.ok(result)
+          assert.ok(result.authorize)
+
+          done()
+
+        })
+
+      })
+
+    })
+
+
+  })
+
+
 
 })
