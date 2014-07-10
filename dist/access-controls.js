@@ -506,18 +506,37 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   }
 }
 
-AccessControlProcedure.prototype.applyFilters = function(filters, obj) {
+AccessControlProcedure.prototype.applyFilters = function(filters, obj, action) {
+
+  var filterType = 'read'
+  switch(action) {
+    case 'save':
+    case 'save_new':
+    case 'save_existing':
+      filterType = 'write'
+      break
+    case 'load':
+    case 'list':
+    default:
+      filterType = 'read'
+      break
+  }
 
   if(filters && filters.length > 0) {
     for(var i = 0 ; i < filters.length ; i++) {
       var filter = filters[i]
 
       switch(filter.access) {
-        case 'denied':
+      case 'denied':
           delete obj[filter.attribute]
+
           break
         case 'partial':
-          obj[filter.attribute] = filter.filteredValue
+          if(filterType === 'read') {
+            obj[filter.attribute] = filter.filteredValue
+          } else {
+            delete obj[filter.attribute]
+          }
           break
       }
 
