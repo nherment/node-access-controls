@@ -248,7 +248,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
 
       var rolesMatch = this._rolesMatch(this._roles, roles)
       authorize = rolesMatch.ok
-      reason    = rolesMatch.reason || 'roles mismatch'
+      reason    = rolesMatch.reason
 
     } else {
       // conditions say this ACL does not apply
@@ -303,6 +303,8 @@ AccessControlList.prototype._rolesMatch = function(expectedRoles, actualRoles) {
     rolesMatch.reason = 'expected roles ' + JSON.stringify(expectedRoles) +
       ' but got roles ' + JSON.stringify(actualRoles) +
       '. missing roles ' + JSON.stringify(missingRoles)
+  } else if(rolesMatch.ok) {
+    rolesMatch.reason = 'roles match as expected: ' + expectedRoles.join(',')
   }
 
   return rolesMatch
