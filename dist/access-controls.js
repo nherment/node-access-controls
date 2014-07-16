@@ -433,7 +433,6 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   details.context = context
   details.roles   = roles
   details.action  = action
-  details.target  = obj
   var self = this
 
   if(accessControls && accessControls.length > 0) {
