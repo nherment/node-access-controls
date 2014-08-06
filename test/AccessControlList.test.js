@@ -98,6 +98,77 @@ describe('access control list', function() {
 
   })
 
+  it('should fail to allow blacklisted numbers', function(done){
+    // Story: Each state (entity) has a number of zip codes that are
+    // not allowed to participate in a competition. These zip codes
+    // are listed as an array under the zipBlacklist property.
+    // We need to make sure that the context object (a city with a zip)
+    // is not in this list and fail authorization if it is.
+    var numberObj = {
+      state: 'Arizona',
+      zipBlacklist: ['85050', '85260']
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipBlacklist': '{!city.zip}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(numberObj, 'load').ok);
+
+    acl.authorize(numberObj, 'load', ['agent'], {city: {zip: '85050'}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Fail authorization because zip is in the blacklist
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should authorize when blacklisted numbers are not present', function(done){
+    var numberObj = {
+      state: 'Arizona',
+      zipBlacklist: ['85050', '85260']
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipBlacklist': '{!city.zip}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(numberObj, 'load').ok);
+
+    acl.authorize(numberObj, 'load', ['agent'], {city: {zip: '85555'}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should authorization because zip is not in the blacklist
+      assert.ok(result.authorize);
+    });
+
+    done();
+
+  });
+
   it('should always apply on empty conditions', function(done) {
 
     var obj1 = {region: 'EMEA'}
