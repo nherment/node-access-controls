@@ -2,9 +2,9 @@ build:
 	node script/exportBrowserLibrary.js
 
 test-browser:
-	mocha-phantomjs test/browser/test.html
+	node_modules/.bin/mocha-phantomjs test/browser/test.html
 
 test-node:
-	mocha test --reporter spec
+	node_modules/.bin/mocha test --reporter spec
 
 test: build test-node test-browser
