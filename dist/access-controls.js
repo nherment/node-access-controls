@@ -199,6 +199,8 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
               match.reason = 'Attr [' + attr + '] should be [' + expectedValue + '] but is not in [' + actualValue + ']';
             }
           }
+        } else if(expectedValue === null && (actualValue === undefined || actualValue === null)) {
+          match.reason = 'falsy value expected';
         } else if(actualValue !== expectedValue) {
           match.ok = undefined // this ACL should not apply to this object
           match.reason = 'Condition do not apply. Attr ['+attr+'] should be ['+expectedValue+'] but is ['+actualValue+']'
@@ -240,7 +242,6 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
       match.inherit.push(inheritance)
     }
   }
-
   return match
 }
 
@@ -263,7 +264,6 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
       reason    = conditionsMatch.reason
 
     } else if(conditionsMatch.ok === true) {
-
       var rolesMatch = this._rolesMatch(this._roles, roles)
       authorize = rolesMatch.ok
       reason    = rolesMatch.reason
