@@ -34,6 +34,7 @@ function AccessControlList(conf) {
 
   this._roles = conf.roles
   this._name = conf.name || JSON.stringify(conf.roles)
+  this._hard = conf.hard || true
 
   if(!conf.control) { throw new Error('control is required') }
   this._control = conf.control
@@ -288,6 +289,15 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
     }
   }
 
+  if(!authorize) {
+    if(this._hard === true) {
+      authorize = false;
+    } else {
+      authorize = true;
+      //Send back caseNumber, owner, type, sub-type and id
+    }
+  }
+
   setImmediateShim(function() {
     callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters})
   })
@@ -483,7 +493,9 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
 
         switch(accessControl.control()) {
           case 'filter':
-
+            if(result.hard) {
+              details.hard = true;
+            }
             if(!details.filters) {
               details.filters = []
             }
@@ -492,17 +504,26 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
             }
             break
           case 'requisite':
+            if(result.hard) {
+              details.hard = true;
+            }
             if(!result.authorize) {
               details.authorize = false
               stop = true
             }
             break
           case 'required':
+            if(result.hard) {
+              details.hard = true;
+            }
             if(!result.authorize) {
               details.authorize = result.authorize
             }
             break
           case 'sufficient':
+            if(result.hard) {
+              details.hard = true;
+            }
             if(result.authorize) {
               details.authorize = true
               stop = true
