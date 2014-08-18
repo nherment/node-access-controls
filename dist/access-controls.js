@@ -34,7 +34,7 @@ function AccessControlList(conf) {
 
   this._roles = conf.roles
   this._name = conf.name || JSON.stringify(conf.roles)
-  this._hard = conf.hard || true
+  this._hard = conf.hard || false
 
   if(!conf.control) { throw new Error('control is required') }
   this._control = conf.control
@@ -289,13 +289,11 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
     }
   }
 
-  if(!authorize) {
-    if(this._hard === true) {
-      authorize = false;
-    } else {
-      authorize = true;
-      //Send back caseNumber, owner, type, sub-type and id
-    }
+  if(this._hard === true) {
+    authorize = false;
+  } else {
+    authorize = true;
+    //Send back caseNumber, owner, type, sub-type and id
   }
 
   setImmediateShim(function() {
@@ -521,9 +519,6 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
             }
             break
           case 'sufficient':
-            if(result.hard) {
-              details.hard = true;
-            }
             if(result.authorize) {
               details.authorize = true
               stop = true
