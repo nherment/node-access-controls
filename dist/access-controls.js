@@ -252,6 +252,8 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   var inherit = []
   var shouldApply = this.shouldApply(obj, action)
   var filters = null
+  var hard = this._hard
+
   if(shouldApply.ok) {
 
     var conditionsMatch = this._conditionsMatch(obj, context)
@@ -289,15 +291,8 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
     }
   }
 
-  if(this._hard === true) {
-    authorize = false;
-  } else {
-    authorize = true;
-    //Send back caseNumber, owner, type, sub-type and id
-  }
-
   setImmediateShim(function() {
-    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters})
+    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters, hard: hard})
   })
 }
 
@@ -342,6 +337,10 @@ AccessControlList.prototype.control = function() {
 
 AccessControlList.prototype.name = function() {
   return this._name
+}
+
+AccessControlList.prototype.hard = function() {
+  return this._hard
 }
 
 AccessControlList.prototype.toString = function() {
@@ -493,6 +492,8 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
           case 'filter':
             if(result.hard) {
               details.hard = true;
+            } else {
+              details.hard = false;
             }
             if(!details.filters) {
               details.filters = []
@@ -504,6 +505,8 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
           case 'requisite':
             if(result.hard) {
               details.hard = true;
+            } else {
+              details.hard = false;
             }
             if(!result.authorize) {
               details.authorize = false
@@ -513,6 +516,8 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
           case 'required':
             if(result.hard) {
               details.hard = true;
+            } else {
+              details.hard = false;
             }
             if(!result.authorize) {
               details.authorize = result.authorize

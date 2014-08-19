@@ -209,4 +209,70 @@ describe('access controls', function() {
     })
   })
 
+  describe('procedure 3', function () {
+
+    var accessControlList3 = [{
+      name: 'EMEA_region',
+      roles: ['EMEA'],
+      control: 'requisite',
+      hard: true,
+      actions: ['load']
+    },
+    {
+      name: 'EMEA_region2',
+      roles: ['EMEA', 'admin'],
+      control: 'requisite',
+      hard: false,
+      actions: ['list']
+    }
+  ]
+
+    var region1 = {
+      name: 'EMEA' 
+    }
+  
+    var procedure3 = new AccessControlProcedure(accessControlList3)
+
+    it('match', function(done) {
+
+      procedure3.authorize(region1, 'load', ['EMEA'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.history.length, accessControlList3.length)
+        done()
+      })
+
+    })
+
+    it('access denied - returns permission denied', function(done) {
+      procedure3.authorize(region1, 'load', ['incorrect_role'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(!result.authorize)
+        assert.equal(result.hard, true)
+        done()
+      })
+    })
+
+    it('access denied - returns allowed properties only', function(done) {
+      procedure3.authorize(region1, 'list', ['admin'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+        assert.ok(result)
+        assert.ok(!result.authorize)
+        assert.ok(!result.hard)
+        done()
+      })
+    })
+
+  })
+
 })
