@@ -209,4 +209,74 @@ describe('access controls', function() {
     })
   })
 
+  describe('procedure 3', function () {
+
+    var accessControlList3 = [{
+      name: 'EMEA_region',
+      roles: ['EMEA'],
+      control: 'required',
+      hard: true,
+      actions: ['load']
+    },
+    {
+      name: 'EMEA_region2',
+      roles: ['EMEA2'],
+      control: 'required',
+      hard: false,
+      actions: ['list']
+    }
+  ]
+
+    var region1 = {
+      name: 'EMEA' 
+    }
+
+    var region2 = {
+      name: 'EMEA2'
+    }
+  
+    var procedure3 = new AccessControlProcedure(accessControlList3)
+
+    it('match', function(done) {
+
+      procedure3.authorize(region1, 'load', ['EMEA'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.history.length, 1)
+        done()
+      })
+
+    })
+
+    it('access denied - hard set to true', function(done) {
+      procedure3.authorize(region1, 'load', ['admin'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(!result.authorize)
+        assert.ok(result.hard)
+        done()
+      })
+    })
+
+    it('access denied - hard set to false', function(done) {
+      procedure3.authorize(region2, 'list', ['admin'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+        assert.ok(result)
+        assert.ok(!result.authorize)
+        assert.ok(!result.hard)
+        done()
+      })
+    })
+
+  })
+
 })

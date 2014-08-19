@@ -34,6 +34,7 @@ function AccessControlList(conf) {
 
   this._roles = conf.roles
   this._name = conf.name || JSON.stringify(conf.roles)
+  this._hard = conf.hard || false
 
   if(!conf.control) { throw new Error('control is required') }
   this._control = conf.control
@@ -251,6 +252,8 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   var inherit = []
   var shouldApply = this.shouldApply(obj, action)
   var filters = null
+  var hard = this._hard
+
   if(shouldApply.ok) {
 
     var conditionsMatch = this._conditionsMatch(obj, context)
@@ -289,7 +292,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   }
 
   setImmediateShim(function() {
-    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters})
+    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters, hard: hard})
   })
 }
 
@@ -334,6 +337,10 @@ AccessControlList.prototype.control = function() {
 
 AccessControlList.prototype.name = function() {
   return this._name
+}
+
+AccessControlList.prototype.hard = function() {
+  return this._hard
 }
 
 AccessControlList.prototype.toString = function() {
@@ -483,7 +490,11 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
 
         switch(accessControl.control()) {
           case 'filter':
-
+            if(result.hard) {
+              details.hard = true;
+            } else {
+              details.hard = false;
+            }
             if(!details.filters) {
               details.filters = []
             }
@@ -492,12 +503,22 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
             }
             break
           case 'requisite':
+            if(result.hard) {
+              details.hard = true;
+            } else {
+              details.hard = false;
+            }
             if(!result.authorize) {
               details.authorize = false
               stop = true
             }
             break
           case 'required':
+            if(result.hard) {
+              details.hard = true;
+            } else {
+              details.hard = false;
+            }
             if(!result.authorize) {
               details.authorize = result.authorize
             }
