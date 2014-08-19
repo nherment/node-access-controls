@@ -214,14 +214,14 @@ describe('access controls', function() {
     var accessControlList3 = [{
       name: 'EMEA_region',
       roles: ['EMEA'],
-      control: 'requisite',
+      control: 'required',
       hard: true,
       actions: ['load']
     },
     {
       name: 'EMEA_region2',
-      roles: ['EMEA', 'admin'],
-      control: 'requisite',
+      roles: ['EMEA2'],
+      control: 'required',
       hard: false,
       actions: ['list']
     }
@@ -272,18 +272,6 @@ describe('access controls', function() {
         }
         assert.ok(result)
         assert.ok(!result.authorize)
-        assert.ok(!result.hard)
-        done()
-      })
-    })
-
-    it('access permitted', function(done) {
-      procedure3.authorize(region2, 'list', ['EMEA', 'admin'], {}, function(err, result) {
-        if(err) {
-          return done(err)
-        }
-        assert.ok(result)
-        assert.ok(result.authorize)
         assert.ok(!result.hard)
         done()
       })
