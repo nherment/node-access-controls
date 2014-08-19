@@ -252,7 +252,7 @@ describe('access controls', function() {
 
     })
 
-    it('access denied - hard set to true - returns permission denied', function(done) {
+    it('access denied - hard set to true', function(done) {
       procedure3.authorize(region1, 'load', ['admin'], {}, function(err, result) {
         if(err) {
           return done(err)
@@ -265,7 +265,7 @@ describe('access controls', function() {
       })
     })
 
-    it('access denied - hard set to false - returns allowed properties only', function(done) {
+    it('access denied - hard set to false', function(done) {
       procedure3.authorize(region2, 'list', ['admin'], {}, function(err, result) {
         if(err) {
           return done(err)
