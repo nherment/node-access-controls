@@ -701,7 +701,6 @@ describe('access control list', function() {
       assert.equal(result.filters[0].attribute, 'region')
       assert.equal(result.filters[0].access, 'denied')
 
-
       acl.authorize(obj, 'load', ['EMEA'], {}, function(err, result) {
 
         assert.ok(!err, err)
@@ -744,7 +743,6 @@ describe('access control list', function() {
       assert.ok(result)
       assert.ok(result.authorize)
 
-
       acl.authorize(obj, 'remove', ['APAC'], {}, function(err, result) {
 
         assert.ok(!err, err)
@@ -767,9 +765,6 @@ describe('access control list', function() {
 
     })
 
-
   })
-
-
 
 })

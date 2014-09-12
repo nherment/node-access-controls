@@ -458,6 +458,8 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   details.context = context
   details.roles   = roles
   details.action  = action
+  details.hard    = details.hard || false
+
   var self = this
 
   if(accessControls && accessControls.length > 0) {
@@ -466,13 +468,13 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
     if(shouldApply.ok) {
       //console.log('running authorization service', accessControl.name())
       accessControl.authorize(obj, action, roles, context, function(err, result) {
-
         details.history.push({
           service: accessControl.name(),
           authorize: result ? result.authorize : null,
           control: accessControl.control(),
           err: err || null,
-          reason: result ? result.reason : null
+          reason: result ? result.reason : null,
+          hard: result ? result.hard : null
         })
 
         //console.log(obj, action, roles, JSON.stringify(result))
@@ -490,11 +492,6 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
 
         switch(accessControl.control()) {
           case 'filter':
-            if(result.hard) {
-              details.hard = true;
-            } else {
-              details.hard = false;
-            }
             if(!details.filters) {
               details.filters = []
             }
@@ -503,24 +500,16 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
             }
             break
           case 'requisite':
-            if(result.hard) {
-              details.hard = true;
-            } else {
-              details.hard = false;
-            }
             if(!result.authorize) {
+              details.hard = details.hard || result.hard
               details.authorize = false
               stop = true
             }
             break
           case 'required':
-            if(result.hard) {
-              details.hard = true;
-            } else {
-              details.hard = false;
-            }
             if(!result.authorize) {
-              details.authorize = result.authorize
+              details.hard = details.hard || result.hard
+              details.authorize = false
             }
             break
           case 'sufficient':
@@ -647,10 +636,8 @@ EventEmitter.prototype.emit = function(type) {
       er = arguments[1];
       if (er instanceof Error) {
         throw er; // Unhandled 'error' event
-      } else {
-        throw TypeError('Uncaught, unspecified "error" event.');
       }
-      return false;
+      throw TypeError('Uncaught, unspecified "error" event.');
     }
   }
 

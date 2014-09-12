@@ -212,10 +212,17 @@ describe('access controls', function() {
   describe('procedure 3', function () {
 
     var accessControlList3 = [{
-      name: 'EMEA_region',
+      name: 'EMEA_region hard',
       roles: ['EMEA'],
       control: 'required',
       hard: true,
+      actions: ['load']
+    },
+    {
+      name: 'EMEA_region soft',
+      roles: ['EMEA'],
+      control: 'required',
+      hard: false,
       actions: ['load']
     },
     {
@@ -228,13 +235,13 @@ describe('access controls', function() {
   ]
 
     var region1 = {
-      name: 'EMEA' 
+      name: 'EMEA'
     }
 
     var region2 = {
       name: 'EMEA2'
     }
-  
+
     var procedure3 = new AccessControlProcedure(accessControlList3)
 
     it('match', function(done) {
@@ -246,7 +253,7 @@ describe('access controls', function() {
 
         assert.ok(result)
         assert.ok(result.authorize)
-        assert.equal(result.history.length, 1)
+        assert.equal(result.history.length, 2)
         done()
       })
 
