@@ -221,3 +221,15 @@ For this, you can reference the current user in an ACL:
     })
 
 The above will allow users to only create, read, update or delete 'todo' objects where they are the owner.
+
+
+## Tracing
+
+If you need to trace what node-access-controls is doing you can active DEBUG before running your application:
+
+```
+DEBUG=node-access-controls:* node yourapp.js
+```
+
+
+
