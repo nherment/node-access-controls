@@ -4,6 +4,7 @@ module.exports = _dereq_('./lib/AccessControlProcedure.js')
 
 },{"./lib/AccessControlProcedure.js":3}],2:[function(_dereq_,module,exports){
 
+
 var setImmediateShim = setTimeout
 // browser shim
 if(typeof setImmediate !== 'undefined') {
@@ -269,6 +270,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
 
     } else if(conditionsMatch.ok === true) {
       var rolesMatch = this._rolesMatch(this._roles, roles)
+
       authorize = rolesMatch.ok
       reason    = rolesMatch.reason
       missing   = rolesMatch.missing
@@ -306,6 +308,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
 }
 
 AccessControlList.prototype._rolesMatch = function(expectedRoles, actualRoles) {
+  
   var rolesMatch = {ok: true}
   var missingRoles = []
   if(expectedRoles && expectedRoles.length > 0) {
@@ -452,14 +455,13 @@ AccessControlProcedure.prototype.addAccessControls = function(acl) {
 }
 
 AccessControlProcedure.prototype.authorize = function(obj, action, roles, context, callback) {
-  //console.log('Running authorization procedure', obj, action, roles)
-
   this._nextACL(obj, action, roles, this._accessControls.slice(0), context, undefined, function(err, details) {
     callback(err, details)
   })
 }
 
 AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessControls, context, details, callback) {
+
   if(!details) {
     details = {authorize: true}
   }

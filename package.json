@@ -24,7 +24,6 @@
   },
   "homepage": "https://github.com/nherment/node-access-controls",
   "dependencies": {
-    "debug": "2.0.0",
     "lodash": "2.4.1",
     "object-tree": "0.2.5",
     "patrun": "0.2.0"
