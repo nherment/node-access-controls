@@ -253,6 +253,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   var shouldApply = this.shouldApply(obj, action)
   var filters = null
   var hard = this._hard
+  var missing = null
 
   if(shouldApply.ok) {
 
@@ -270,6 +271,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
       var rolesMatch = this._rolesMatch(this._roles, roles)
       authorize = rolesMatch.ok
       reason    = rolesMatch.reason
+      missing   = rolesMatch.missing
 
     } else {
       // conditions say this ACL does not apply
@@ -292,7 +294,14 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   }
 
   setImmediateShim(function() {
-    callback(undefined, {authorize: authorize, reason: reason, inherit: inherit, filters: filters, hard: hard})
+    callback(undefined, {
+      authorize: authorize,
+      reason: reason,
+      inherit: inherit,
+      filters: filters,
+      hard: hard,
+      missingRoles: missing
+    })
   })
 }
 
@@ -321,6 +330,7 @@ AccessControlList.prototype._rolesMatch = function(expectedRoles, actualRoles) {
   if(missingRoles.length > 0) {
 
     rolesMatch.ok = false
+    rolesMatch.missing = missingRoles
     rolesMatch.reason = 'expected roles ' + JSON.stringify(expectedRoles) +
       ' but got roles ' + JSON.stringify(actualRoles) +
       '. missing roles ' + JSON.stringify(missingRoles)
@@ -329,6 +339,10 @@ AccessControlList.prototype._rolesMatch = function(expectedRoles, actualRoles) {
   }
 
   return rolesMatch
+}
+
+AccessControlList.prototype.roles = function() {
+  return this._roles
 }
 
 AccessControlList.prototype.control = function() {
@@ -455,6 +469,9 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
   if(!details.inherit) {
     details.inherit = []
   }
+  if(!details.summary) {
+    details.summary = []
+  }
   details.context = context
   details.roles   = roles
   details.action  = action
@@ -504,18 +521,32 @@ AccessControlProcedure.prototype._nextACL = function(obj, action, roles, accessC
               details.hard = details.hard || result.hard
               details.authorize = false
               stop = true
+              details.summary.push({
+                service: accessControl.name(),
+                reason: result.reason,
+                missingRoles: result.missingRoles
+              })
             }
             break
           case 'required':
             if(!result.authorize) {
               details.hard = details.hard || result.hard
               details.authorize = false
+              details.summary.push({
+                service: accessControl.name(),
+                reason: result.reason,
+                missingRoles: result.missingRoles
+              })
             }
             break
           case 'sufficient':
             if(result.authorize) {
               details.authorize = true
               stop = true
+              details.summary = [{
+                service: accessControl.name(),
+                reason: result.reason
+              }]
             }
             break
         }

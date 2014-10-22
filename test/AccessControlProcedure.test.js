@@ -79,6 +79,10 @@ describe('access controls', function() {
         assert.equal(result.history.length, accessControlList1.length)
         assert.equal(result.history[0].authorize, true)
         assert.equal(result.history[1].authorize, false)
+
+        assert.ok(result.summary)
+        assert.equal(result.summary.length, 1)
+        assert.equal(result.summary[0].service, 'legal_group')
         done()
       })
 
@@ -96,6 +100,10 @@ describe('access controls', function() {
         assert.equal(result.history.length, accessControlList1.length)
         assert.equal(result.history[0].authorize, false)
         assert.equal(result.history[1].authorize, true)
+
+        assert.ok(result.summary)
+        assert.equal(result.summary.length, 1)
+        assert.equal(result.summary[0].service, 'EMEA_region')
         done()
       })
 
@@ -114,6 +122,10 @@ describe('access controls', function() {
         assert.equal(result.history[0].authorize, false)
         assert.equal(result.history[1].authorize, false)
         assert.equal(result.history[2].authorize, true)
+
+        assert.ok(result.summary)
+        assert.equal(result.summary.length, 1)
+        assert.equal(result.summary[0].service, 'admin all access')
         done()
       })
 
@@ -203,6 +215,10 @@ describe('access controls', function() {
         assert.equal(result.history[0].authorize, true)
         assert.equal(result.history[1].authorize, false)
         assert.equal(result.history[2].authorize, false)
+
+        assert.ok(result.summary)
+        assert.equal(result.summary.length, 1)
+        assert.equal(result.summary[0].service, 'does_not_exist all access')
         done()
       })
 
