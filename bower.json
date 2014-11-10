@@ -1,0 +1,18 @@
+{
+  "name": "access-controls",
+  "main": "dist/access-controls.js",
+  "version": "0.5.1",
+  "homepage": "https://github.com/nherment/node-access-controls",
+  "authors": [
+    "Nicolas Herment <nherment@gmail.com>"
+  ],
+  "description": "rule based access-controls engine for node.js (browser compatible)",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
