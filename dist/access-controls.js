@@ -159,7 +159,9 @@ AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
         filterResult.reason = 'trying to apply a replace filter on a value that is not a string'
       }
       filterResult.originalValue = obj[attribute]
-      console.warn('Denying access to field ['+attribute+'].', filterResult.reason)
+      if (typeof console !== 'undefined') {
+        console.warn('Denying access to field ['+attribute+'].', filterResult.reason)
+      }
     }
   } else {
     throw new Error('unsupported filter', filter)
