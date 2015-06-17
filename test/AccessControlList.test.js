@@ -169,6 +169,102 @@ describe('access control list', function() {
 
   });
 
+  it('should match conditions when expected value for attribute is a literal array', function(done) {
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': ['85032', '85050']
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', [], {}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should fail to authorize because conditions match and required role is missing
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should fail to allow load objects outside allowed user zipcodes', function(done){
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': '{user.allowedZipcodes}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85051']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Fail authorization because object zipcode is not in user allowed zipcodes list
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should authorize when object is within allowed user zipcodes', function(done) {
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': '{user.allowedZipcodes}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85050']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should authorize because object zipcode is within user allowed zipcodes list
+      assert.ok(result.authorize);
+    });
+
+    done();
+
+  });
+
   it('should always apply on empty conditions', function(done) {
 
     var obj1 = {region: 'EMEA'}
