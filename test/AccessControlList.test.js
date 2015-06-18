@@ -98,6 +98,88 @@ describe('access control list', function() {
 
   })
 
+  it('should authorize action using fn condition clause', function(done) {
+
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'acl2_required',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['load'],
+      conditions: [{
+        fn: function(obj, context) {
+          if (!~context.user.allowedZipcodes.indexOf(obj.zipcode)) {
+            return {
+              ok: false,
+              reason: 'zipcode not in list of allowed zipcodes'
+            }
+          }
+
+          return { ok: true }
+        }
+      }]
+    })
+
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85050']}}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(result.authorize)
+
+      done()
+
+    })
+
+
+  })
+
+  it('should not authorize action using fn condition clause', function(done) {
+
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'acl2_required',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['load'],
+      conditions: [{
+        fn: function(obj, context) {
+          if (!~context.user.allowedZipcodes.indexOf(obj.zipcode)) {
+            return {
+              ok: false,
+              reason: 'zipcode not in list of allowed zipcodes'
+            }
+          }
+
+          return { ok: true }
+        }
+      }]
+    })
+
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85054']}}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(!result.authorize)
+
+      done()
+
+    })
+
+
+  })
+
   it('should fail to allow blacklisted numbers', function(done){
     // Story: Each state (entity) has a number of zip codes that are
     // not allowed to participate in a competition. These zip codes
@@ -321,7 +403,6 @@ describe('access control list', function() {
 
             assert.ok(!err, err)
             assert.ok(result)
-            console.log('result', result);
             //condition is true so EMEA role required and therefore user should
             // not be granted access
             assert.ok(!result.authorize)

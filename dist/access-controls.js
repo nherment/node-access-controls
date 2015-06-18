@@ -292,6 +292,14 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
         }
       }
     }
+  } else if (condition.fn) {
+
+    var result = condition.fn(obj, context);
+
+    if (result.ok !== true) {
+      match.ok = result.ok
+      match.reason = result.reason
+    }
 
   } else if(/^\{(.+\/){0,2}.*::.*\}$/.test(condition)) {
     // match {-/-/foobar::path.to.attr} or {-/foobar::path.to.attr} etc.
