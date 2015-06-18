@@ -265,6 +265,73 @@ describe('access control list', function() {
 
   });
 
+  it('should grant access to foo cases', function (done) {
+
+        var obj = {caseType: 'foo'}
+
+        var acl = new AccessControlList({
+            name      : 'acl1_required',
+            roles     : ['EMEA'],
+            control   : 'requisite',
+            actions   : ['load'],
+            conditions: [{
+                attributes: {
+                    '!caseType': 'foo'
+                }
+            }
+            ]
+        })
+
+        assert.ok(acl.shouldApply(obj, 'load').ok)
+
+        acl.authorize(obj, 'load', [], {}, function (err, result) {
+
+            assert.ok(!err, err)
+            assert.ok(result)
+            //condition is false so EMEA role shouldn't be required and therefore user should
+            // be granted access
+            assert.ok(result.authorize)
+            done()
+
+        })
+
+
+    });
+
+  it('should not grant access to foo cases', function (done) {
+
+        var obj = {caseType: 'bar'}
+
+        var acl = new AccessControlList({
+            name      : 'acl1_required',
+            roles     : ['EMEA'],
+            control   : 'requisite',
+            actions   : ['load'],
+            conditions: [{
+                attributes: {
+                    '!caseType': 'foo'
+                }
+            }
+            ]
+        })
+
+        assert.ok(acl.shouldApply(obj, 'load').ok)
+
+        acl.authorize(obj, 'load', [], {}, function (err, result) {
+
+            assert.ok(!err, err)
+            assert.ok(result)
+            console.log('result', result);
+            //condition is true so EMEA role required and therefore user should
+            // not be granted access
+            assert.ok(!result.authorize)
+            done()
+
+        })
+
+
+    });
+
   it('should always apply on empty conditions', function(done) {
 
     var obj1 = {region: 'EMEA'}
