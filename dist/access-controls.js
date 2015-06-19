@@ -197,18 +197,32 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
             expectedValue = '{' + expectedValue.substr(2)
           }
           expectedValue = this._objectParser.lookupTemplate(expectedValue, context);
-          if(!_.isArray(actualValue)) {
-            actualValue = [actualValue]
-          }
-          if(invertedCondition) {
-            if (~actualValue.indexOf(expectedValue)) {
-              match.ok = false
-              match.reason = 'Attr [' + attr + '] should not be [' + expectedValue + '] but is in [' + actualValue + ']'
+          if (_.isArray(expectedValue)) {
+            if(invertedCondition) {
+              if (~expectedValue.indexOf(actualValue)) {
+                match.ok = false
+                match.reason = 'Attr [' + attr + '] should not be [' + actualValue + '] but is in [' + expectedValue + ']'
+              }
+            } else {
+              if (!~expectedValue.indexOf(actualValue)) {
+                match.ok = false
+                match.reason = 'Attr [' + attr + '] should be [' + actualValue + '] but is not in [' + expectedValue + ']'
+              }
             }
           } else {
-            if (!~actualValue.indexOf(expectedValue)) {
-              match.ok = false
-              match.reason = 'Attr [' + attr + '] should be [' + expectedValue + '] but is not in [' + actualValue + ']'
+            if(!_.isArray(actualValue)) {
+              actualValue = [actualValue]
+            }
+            if(invertedCondition) {
+              if (~actualValue.indexOf(expectedValue)) {
+                match.ok = false
+                match.reason = 'Attr [' + attr + '] should not be [' + expectedValue + '] but is in [' + actualValue + ']'
+              }
+            } else {
+              if (!~actualValue.indexOf(expectedValue)) {
+                match.ok = false
+                match.reason = 'Attr [' + attr + '] should be [' + expectedValue + '] but is not in [' + actualValue + ']'
+              }
             }
           }
         } else if(expectedValue === null && (actualValue === undefined || actualValue === null)) {
@@ -219,7 +233,8 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
           } else {
             match.reason = 'falsy value expected'
           }
-        } else if(actualValue !== expectedValue) {
+        } else if ((!_.isArray(expectedValue) && actualValue !== expectedValue) ||
+                  (_.isArray(expectedValue) && !~expectedValue.indexOf(actualValue))) {
           if(invertedCondition) {
             match.ok = true
             match.reason = 'Condition match. Attr ['+attr+'] should *NOT* be ['+expectedValue+'] and is ['+actualValue+']'
