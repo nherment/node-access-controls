@@ -98,6 +98,88 @@ describe('access control list', function() {
 
   })
 
+  it('should authorize action using fn condition clause', function(done) {
+
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'acl2_required',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['load'],
+      conditions: [{
+        fn: function(obj, context) {
+          if (!~context.user.allowedZipcodes.indexOf(obj.zipcode)) {
+            return {
+              ok: false,
+              reason: 'zipcode not in list of allowed zipcodes'
+            }
+          }
+
+          return { ok: true }
+        }
+      }]
+    })
+
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85050']}}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(result.authorize)
+
+      done()
+
+    })
+
+
+  })
+
+  it('should not authorize action using fn condition clause', function(done) {
+
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'acl2_required',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['load'],
+      conditions: [{
+        fn: function(obj, context) {
+          if (!~context.user.allowedZipcodes.indexOf(obj.zipcode)) {
+            return {
+              ok: false,
+              reason: 'zipcode not in list of allowed zipcodes'
+            }
+          }
+
+          return { ok: true }
+        }
+      }]
+    })
+
+    assert.ok(acl.shouldApply(obj, 'load').ok)
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85054']}}, function(err, result) {
+
+      assert.ok(!err, err)
+
+      assert.ok(result)
+      assert.ok(!result.authorize)
+
+      done()
+
+    })
+
+
+  })
+
   it('should fail to allow blacklisted numbers', function(done){
     // Story: Each state (entity) has a number of zip codes that are
     // not allowed to participate in a competition. These zip codes
@@ -168,6 +250,168 @@ describe('access control list', function() {
     done();
 
   });
+
+  it('should match conditions when expected value for attribute is a literal array', function(done) {
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': ['85032', '85050']
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', [], {}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should fail to authorize because conditions match and required role is missing
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should fail to allow load objects outside allowed user zipcodes', function(done){
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': '{user.allowedZipcodes}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85051']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Fail authorization because object zipcode is not in user allowed zipcodes list
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should authorize when object is within allowed user zipcodes', function(done) {
+    var obj = {
+      zipcode: '85050'
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'zipcode': '{user.allowedZipcodes}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {allowedZipcodes: ['85032', '85050']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should authorize because object zipcode is within user allowed zipcodes list
+      assert.ok(result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should grant access to foo cases', function (done) {
+
+        var obj = {caseType: 'foo'}
+
+        var acl = new AccessControlList({
+            name      : 'acl1_required',
+            roles     : ['EMEA'],
+            control   : 'requisite',
+            actions   : ['load'],
+            conditions: [{
+                attributes: {
+                    '!caseType': 'foo'
+                }
+            }
+            ]
+        })
+
+        assert.ok(acl.shouldApply(obj, 'load').ok)
+
+        acl.authorize(obj, 'load', [], {}, function (err, result) {
+
+            assert.ok(!err, err)
+            assert.ok(result)
+            //condition is false so EMEA role shouldn't be required and therefore user should
+            // be granted access
+            assert.ok(result.authorize)
+            done()
+
+        })
+
+
+    });
+
+  it('should not grant access to foo cases', function (done) {
+
+        var obj = {caseType: 'bar'}
+
+        var acl = new AccessControlList({
+            name      : 'acl1_required',
+            roles     : ['EMEA'],
+            control   : 'requisite',
+            actions   : ['load'],
+            conditions: [{
+                attributes: {
+                    '!caseType': 'foo'
+                }
+            }
+            ]
+        })
+
+        assert.ok(acl.shouldApply(obj, 'load').ok)
+
+        acl.authorize(obj, 'load', [], {}, function (err, result) {
+
+            assert.ok(!err, err)
+            assert.ok(result)
+            //condition is true so EMEA role required and therefore user should
+            // not be granted access
+            assert.ok(!result.authorize)
+            done()
+
+        })
+
+
+    });
 
   it('should always apply on empty conditions', function(done) {
 
