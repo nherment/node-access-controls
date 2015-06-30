@@ -122,14 +122,40 @@ AccessControlList.prototype._filter = function(obj) {
 AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
   var filterResult = {}
   filterResult.attribute = attribute
+
+  // foo: false => foo denied
   if(!filter) {
     filterResult.access = 'denied'
     filterResult.originalValue = obj[attribute]
-  } else if(typeof filter === 'function') {
+  } else
+  // foo: [...] => foo denied if (new) value is in specified array of values
+  // used with write operations to disallow certain values to be set on a field
+  // doesn't make much sense for read operations, but if used with reads it will
+  //  stop certain values from being returned
+  if(_.isArray(filter)) {
+    filterResult.originalValue = obj[attribute]
+    if (~filter.indexOf(obj[attribute])) {
+      filterResult.access = 'denied'
+    }
+    else {
+      // if value is not in specified array of values, allow it through
+    }
+  } else
+  // custom filter function
+  // only works for read operations, replaces original field value with
+  //  the value returned from the custom filtration function
+  // when used with write operations the returned value has no effect
+  //  and access to field will be always denied
+  if(_.isFunction(filter)) {
     filterResult.access = 'partial'
     filterResult.originalValue = obj[attribute]
     filterResult.filteredValue = filter(obj[attribute])
-  } else if(_.isNumber(filter)) {
+  } else
+  // "mask" filter for read operations
+  // if positive will replace first N characters with *
+  // if negative will replace last N characters with *
+  if(_.isNumber(filter)) {
+    // only works with strings, for non-string values simply denies access
     if(_.isString(obj[attribute])) {
       filterResult.access = 'partial'
       filterResult.originalValue = obj[attribute]
