@@ -700,8 +700,8 @@ AccessControlProcedure.prototype.applyFilters = function(filters, obj, action) {
     case 'save_existing':
       filterType = 'write'
       break
-    case 'load':
-    case 'list':
+    //case 'load':
+    //case 'list':
     default:
       filterType = 'read'
       break
@@ -712,9 +712,8 @@ AccessControlProcedure.prototype.applyFilters = function(filters, obj, action) {
       var filter = filters[i]
 
       switch(filter.access) {
-      case 'denied':
+        case 'denied':
           delete obj[filter.attribute]
-
           break
         case 'partial':
           if(filterType === 'read') {
