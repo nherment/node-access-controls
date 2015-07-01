@@ -199,13 +199,34 @@ AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
 
 AccessControlList.prototype._conditionMatch = function(condition, obj, context) {
   var match = {ok: true}
+
+  // at least one common element between expected and actual
+  var oneMatch = function(expected, actual) {
+    if (_.isUndefined(expected) || _.isUndefined(actual)) {
+      return false
+    }
+
+    expected = _.isArray(expected) ? expected : [expected]
+    actual = _.isArray(actual) ? actual : [actual]
+
+    for (var i=0; i<expected.length; i++) {
+      for (var j=0; j<actual.length; j++) {
+        if (expected[i] === actual[j]) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   if(condition.attributes) {
 
     for(var attr in condition.attributes) {
 
       if(condition.attributes.hasOwnProperty(attr)) {
 
-        var invertedCondition = false;
+        var areEqual
+        var invertedCondition = false
 
         var expectedValue = condition.attributes[attr]
 
@@ -214,6 +235,7 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
           invertedCondition = true
         }
         var actualValue = this._objectParser.lookup(attr, obj)
+
         if(this._objectParser.isTemplate(expectedValue)) {
           // Check to see if this is a NOT template. This will happen if it starts with {!
           // In order for the template to work replace the {! with { and set a flag that
@@ -222,33 +244,19 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
             invertedCondition = true
             expectedValue = '{' + expectedValue.substr(2)
           }
-          expectedValue = this._objectParser.lookupTemplate(expectedValue, context);
-          if (_.isArray(expectedValue)) {
-            if(invertedCondition) {
-              if (~expectedValue.indexOf(actualValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should not be [' + actualValue + '] but is in [' + expectedValue + ']'
-              }
-            } else {
-              if (!~expectedValue.indexOf(actualValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should be [' + actualValue + '] but is not in [' + expectedValue + ']'
-              }
+          expectedValue = this._objectParser.lookupTemplate(expectedValue, context)
+
+          areEqual = oneMatch(expectedValue, actualValue)
+
+          if(invertedCondition) {
+            if (areEqual) {
+              match.ok = false
+              match.reason = 'Attr [' + attr + '] should not be [' + actualValue + '] but is in [' + expectedValue + ']'
             }
           } else {
-            if(!_.isArray(actualValue)) {
-              actualValue = [actualValue]
-            }
-            if(invertedCondition) {
-              if (~actualValue.indexOf(expectedValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should not be [' + expectedValue + '] but is in [' + actualValue + ']'
-              }
-            } else {
-              if (!~actualValue.indexOf(expectedValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should be [' + expectedValue + '] but is not in [' + actualValue + ']'
-              }
+            if (!areEqual) {
+              match.ok = false
+              match.reason = 'Attr [' + attr + '] should be [' + actualValue + '] but is not in [' + expectedValue + ']'
             }
           }
         } else {
@@ -284,10 +292,8 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
             }
           }
           else {
-            var areEqual = (
-              (!_.isArray(expectedValue) && actualValue === expectedValue) ||
-              (_.isArray(expectedValue) && ~expectedValue.indexOf(actualValue))
-            )
+            areEqual = oneMatch(expectedValue, actualValue)
+
             if (invertedCondition) { // inverted
               if (areEqual) {
                 // !!! not handled in v0.5.2
@@ -320,7 +326,7 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
     }
   } else if (condition.fn) {
 
-    var result = condition.fn(obj, context);
+    var result = condition.fn(obj, context)
 
     if (result.ok !== true) {
       match.ok = result.ok
