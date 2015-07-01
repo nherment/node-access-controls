@@ -98,6 +98,7 @@ describe('access control list', function() {
 
   })
 
+
   it('should authorize action using fn condition clause', function(done) {
 
     var obj = {
@@ -180,6 +181,7 @@ describe('access control list', function() {
 
   })
 
+
   it('should fail to allow blacklisted numbers', function(done){
     // Story: Each state (entity) has a number of zip codes that are
     // not allowed to participate in a competition. These zip codes
@@ -250,6 +252,7 @@ describe('access control list', function() {
     done();
 
   });
+
 
   it('should match conditions when expected value for attribute is a literal array', function(done) {
     var obj = {
@@ -347,6 +350,104 @@ describe('access control list', function() {
 
   });
 
+
+  it('should authorize access when groups match', function(done) {
+    var obj = {
+      groups: ['a', 'b']
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['a'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'groups': ['a']
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', [], {}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should fail to authorize because conditions match and required role is missing
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should fail to allow load objects when user is not part of any allowed groups', function(done){
+    var obj = {
+      allowedGroups: ['a', 'b']
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'allowedGroups': '{user.groups}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {groups: ['c', 'd']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Fail authorization because user is not part of any allowed groups
+      assert.ok(!result.authorize);
+    });
+
+    done();
+
+  });
+
+  it('should authorize when user is in at least one of the allowed groups', function(done) {
+    var obj = {
+      allowedGroups: ['a', 'b']
+    };
+
+    var acl = new AccessControlList({
+      name: 'Check for Blacklist',
+      roles: ['agent'],
+      control: 'required',
+      actions: ['save','list','load'],
+      conditions: [{
+        attributes: {
+          'allowedGroups': '{user.groups}'
+        }
+      }]
+    });
+
+    assert.ok(acl.shouldApply(obj, 'load').ok);
+
+    acl.authorize(obj, 'load', ['agent'], {user: {groups: ['c', 'a']}}, function(err, result) {
+
+      assert.ok(!err, err);
+
+      assert.ok(result);
+      // Should authorize because user is in one of the allowed groups
+      assert.ok(result.authorize);
+    });
+
+    done();
+
+  });
+
+
   it('should grant access to foo cases', function (done) {
 
         var obj = {caseType: 'foo'}
@@ -412,6 +513,7 @@ describe('access control list', function() {
 
 
     });
+
 
   it('should always apply on empty conditions', function(done) {
 
