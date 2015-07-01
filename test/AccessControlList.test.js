@@ -763,6 +763,7 @@ describe('access control list', function() {
 
   })
 
+
   describe('attributes filtering', function() {
 
     it('denied', function(done) {
@@ -1013,6 +1014,81 @@ describe('access control list', function() {
 
     })
 
+
+    it('denies value if setting to', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'closed',
+        reason: 'invalid',
+        original$: {
+          name: 'foo',
+          status: 'open'
+        }
+      }
+
+      var acl = new AccessControlList({
+        name: 'acl3_filter',
+        roles: ['supervisor'],
+        control: 'filter',
+        actions: ['save_new'],
+        conditions: [{
+            attributes: {
+              'status': ['open', 'blocked']
+            }
+          }
+        ],
+        filters: {
+          status: ['closed'],
+          reason: false
+        }
+      })
+
+      assert.ok(acl.shouldApply(obj, 'save_new').ok);
+
+      acl.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(result.filters)
+        assert.equal(result.filters.length, 2)
+        assert.equal(result.filters[0].attribute, 'status')
+        assert.equal(result.filters[0].access, 'denied')
+        assert.equal(result.filters[1].attribute, 'reason')
+        assert.equal(result.filters[1].access, 'denied')
+
+      obj.status = 'blocked'
+
+      acl.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(result.filters)
+        assert.equal(result.filters.length, 2)
+        assert.equal(result.filters[0].attribute, 'status')
+        assert.equal(result.filters[0].access, undefined)
+        assert.equal(result.filters[1].attribute, 'reason')
+        assert.equal(result.filters[1].access, 'denied')
+
+      obj.status = 'closed'
+
+      acl.authorize(obj, 'save_new', ['supervisor'], {}, function(err, result) {
+
+        assert.ok(!err, err)
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.ok(!result.filters)
+
+        done()
+
+      }) }) })
+
+    })
   })
 
 

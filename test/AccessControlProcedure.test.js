@@ -6,6 +6,7 @@ var assert = require('assert')
 
 
 describe('access controls', function() {
+
   describe('procedure 1', function() {
 
     var accessControlList1 = [{
@@ -131,7 +132,6 @@ describe('access controls', function() {
 
     })
   })
-
 
   describe('procedure 2', function() {
 
@@ -300,6 +300,183 @@ describe('access controls', function() {
       })
     })
 
+  })
+
+  describe('procedure 4', function () {
+
+    var accessControlList4 = [{
+      name: 'disallow setting status to close unless supervisor',
+      roles: ['supervisor'],
+      control: 'filter',
+      actions: ['save_new'],
+      conditions: [{
+        attributes: {
+          '!status': ['closed']
+        }
+      }],
+      filters: {
+        status: ['closed'],
+        reason: false
+      }
+    }, {
+      name: 'cannot edit closed cases unless administrator',
+      roles: ['administrator'],
+      control: 'required',
+      actions: ['save_new', 'save_existing'],
+      conditions: [{
+        attributes: {
+          'status': ['closed']
+        }
+      }]
+    }]
+
+    var procedure4 = new AccessControlProcedure(accessControlList4)
+
+    it('filters status and reason', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'closed',
+        reason: 'invalid',
+        original$: {
+          name: 'foo',
+          status: 'open'
+          }
+      }
+
+      procedure4.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.filters.length, 2)
+
+        procedure4.applyFilters(result.filters, obj, 'save_new')
+
+        assert.equal(obj.status, undefined)
+        assert.equal(obj.reason, undefined)
+
+        done()
+      })
+
+    })
+
+    it('filters only reason', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'blocked',
+        reason: 'invalid',
+        original$: {
+          name: 'foo',
+          status: 'open'
+          }
+      }
+
+      procedure4.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.filters.length, 2)
+
+        procedure4.applyFilters(result.filters, obj, 'save_new')
+
+        assert.equal(obj.status, 'blocked')
+        assert.equal(obj.reason, undefined)
+
+        done()
+      })
+
+    })
+
+    it('does not filter status and reason', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'closed',
+        reason: 'invalid',
+        original$: {
+          name: 'foo',
+          status: 'open'
+          }
+      }
+
+      procedure4.authorize(obj, 'save_new', ['supervisor'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.filters.length, 0)
+
+        procedure4.applyFilters(result.filters, obj, 'save_new')
+
+        assert.equal(obj.status, 'closed')
+        assert.equal(obj.reason, 'invalid')
+
+        done()
+      })
+
+    })
+
+    it('disallows action for objects with status closed', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'closed',
+        reason: 'cancelled',
+        original$: {
+          name: 'foo',
+          reason: 'invalid',
+          status: 'closed'
+        }
+      }
+
+      procedure4.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(!result.authorize)
+
+        done()
+      })
+
+    })
+
+    it('matches condition without original$', function(done) {
+
+      var obj = {
+        name: 'foo',
+        status: 'blocked',
+        reason: 'invalid'
+      }
+
+      procedure4.authorize(obj, 'save_new', ['agent'], {}, function(err, result) {
+        if(err) {
+          return done(err)
+        }
+
+        assert.ok(result)
+        assert.ok(result.authorize)
+        assert.equal(result.filters.length, 2)
+
+        procedure4.applyFilters(result.filters, obj, 'save_new')
+
+        assert.equal(obj.status, 'blocked')
+        assert.equal(obj.reason, undefined)
+
+        done()
+      })
+
+    })
   })
 
 })
