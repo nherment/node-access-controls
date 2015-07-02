@@ -1,7 +1,7 @@
 {
   "name": "access-controls",
   "main": "dist/access-controls.js",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "homepage": "https://github.com/nherment/node-access-controls",
   "authors": [
     "Nicolas Herment <nherment@gmail.com>"

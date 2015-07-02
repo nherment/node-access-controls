@@ -80,13 +80,13 @@ AccessControlList.prototype._actionMatch = function(intendedAction) {
  * - obj.ok=false if the rule should apply and the conditions don't match the context (access denied)
  * - obj.ok=undefined if the conditions don't match the object (rule should not apply)
  */
-AccessControlList.prototype._conditionsMatch = function(obj, context) {
+AccessControlList.prototype._conditionsMatch = function(obj, action, context) {
   var totalMatch = {
     ok: true
   }
   for(var i = 0 ; i < this._conditions.length ; i++) {
     var condition = this._conditions[i]
-    var match = this._conditionMatch(condition, obj, context)
+    var match = this._conditionMatch(condition, obj, action, context)
     if(match.ok === undefined) {
       totalMatch.ok = undefined
     } else if(match.ok === false && totalMatch.ok !== undefined) {
@@ -122,14 +122,40 @@ AccessControlList.prototype._filter = function(obj) {
 AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
   var filterResult = {}
   filterResult.attribute = attribute
+
+  // foo: false => foo denied
   if(!filter) {
     filterResult.access = 'denied'
     filterResult.originalValue = obj[attribute]
-  } else if(typeof filter === 'function') {
+  } else
+  // foo: [...] => foo denied if (new) value is in specified array of values
+  // used with write operations to disallow certain values to be set on a field
+  // doesn't make much sense for read operations, but if used with reads it will
+  //  stop certain values from being returned
+  if(_.isArray(filter)) {
+    filterResult.originalValue = obj[attribute]
+    if (~filter.indexOf(obj[attribute])) {
+      filterResult.access = 'denied'
+    }
+    else {
+      // if value is not in specified array of values, allow it through
+    }
+  } else
+  // custom filter function
+  // only works for read operations, replaces original field value with
+  //  the value returned from the custom filtration function
+  // when used with write operations the returned value has no effect
+  //  and access to field will be always denied
+  if(_.isFunction(filter)) {
     filterResult.access = 'partial'
     filterResult.originalValue = obj[attribute]
     filterResult.filteredValue = filter(obj[attribute])
-  } else if(_.isNumber(filter)) {
+  } else
+  // "mask" filter for read operations
+  // if positive will replace first N characters with *
+  // if negative will replace last N characters with *
+  if(_.isNumber(filter)) {
+    // only works with strings, for non-string values simply denies access
     if(_.isString(obj[attribute])) {
       filterResult.access = 'partial'
       filterResult.originalValue = obj[attribute]
@@ -171,15 +197,36 @@ AccessControlList.prototype._applyFilter = function(filter, obj, attribute) {
 
 }
 
-AccessControlList.prototype._conditionMatch = function(condition, obj, context) {
+AccessControlList.prototype._conditionMatch = function(condition, obj, action, context) {
   var match = {ok: true}
+
+  // at least one common element between expected and actual
+  var oneMatch = function(expected, actual) {
+    if (_.isUndefined(expected) || _.isUndefined(actual)) {
+      return false
+    }
+
+    expected = _.isArray(expected) ? expected : [expected]
+    actual = _.isArray(actual) ? actual : [actual]
+
+    for (var i=0; i<expected.length; i++) {
+      for (var j=0; j<actual.length; j++) {
+        if (expected[i] === actual[j]) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   if(condition.attributes) {
 
     for(var attr in condition.attributes) {
 
       if(condition.attributes.hasOwnProperty(attr)) {
 
-        var invertedCondition = false;
+        var areEqual
+        var invertedCondition = false
 
         var expectedValue = condition.attributes[attr]
 
@@ -187,7 +234,15 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
           attr = attr.slice(1)
           invertedCondition = true
         }
-        var actualValue = this._objectParser.lookup(attr, obj)
+
+        var actualValue
+        if (obj.original$) {
+          actualValue = this._objectParser.lookup(attr, obj.original$)
+        }
+        else {
+          actualValue = this._objectParser.lookup(attr, obj)
+        }
+
         if(this._objectParser.isTemplate(expectedValue)) {
           // Check to see if this is a NOT template. This will happen if it starts with {!
           // In order for the template to work replace the {! with { and set a flag that
@@ -196,33 +251,19 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
             invertedCondition = true
             expectedValue = '{' + expectedValue.substr(2)
           }
-          expectedValue = this._objectParser.lookupTemplate(expectedValue, context);
-          if (_.isArray(expectedValue)) {
-            if(invertedCondition) {
-              if (~expectedValue.indexOf(actualValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should not be [' + actualValue + '] but is in [' + expectedValue + ']'
-              }
-            } else {
-              if (!~expectedValue.indexOf(actualValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should be [' + actualValue + '] but is not in [' + expectedValue + ']'
-              }
+          expectedValue = this._objectParser.lookupTemplate(expectedValue, context)
+
+          areEqual = oneMatch(expectedValue, actualValue)
+
+          if(invertedCondition) {
+            if (areEqual) {
+              match.ok = false
+              match.reason = 'Attr [' + attr + '] should not be [' + actualValue + '] but is in [' + expectedValue + ']'
             }
           } else {
-            if(!_.isArray(actualValue)) {
-              actualValue = [actualValue]
-            }
-            if(invertedCondition) {
-              if (~actualValue.indexOf(expectedValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should not be [' + expectedValue + '] but is in [' + actualValue + ']'
-              }
-            } else {
-              if (!~actualValue.indexOf(expectedValue)) {
-                match.ok = false
-                match.reason = 'Attr [' + attr + '] should be [' + expectedValue + '] but is not in [' + actualValue + ']'
-              }
+            if (!areEqual) {
+              match.ok = false
+              match.reason = 'Attr [' + attr + '] should be [' + actualValue + '] but is not in [' + expectedValue + ']'
             }
           }
         } else {
@@ -258,10 +299,8 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
             }
           }
           else {
-            var areEqual = (
-              (!_.isArray(expectedValue) && actualValue === expectedValue) ||
-              (_.isArray(expectedValue) && ~expectedValue.indexOf(actualValue))
-            )
+            areEqual = oneMatch(expectedValue, actualValue)
+
             if (invertedCondition) { // inverted
               if (areEqual) {
                 // !!! not handled in v0.5.2
@@ -294,7 +333,7 @@ AccessControlList.prototype._conditionMatch = function(condition, obj, context) 
     }
   } else if (condition.fn) {
 
-    var result = condition.fn(obj, context);
+    var result = condition.fn(obj, context)
 
     if (result.ok !== true) {
       match.ok = result.ok
@@ -348,7 +387,7 @@ AccessControlList.prototype.authorize = function(obj, action, roles, context, ca
   if(shouldApply.ok) {
 
 
-    var conditionsMatch = this._conditionsMatch(obj, context)
+    var conditionsMatch = this._conditionsMatch(obj, action, context)
 
     if(conditionsMatch.inherit) {
       inherit = inherit.concat(conditionsMatch.inherit)
@@ -674,8 +713,8 @@ AccessControlProcedure.prototype.applyFilters = function(filters, obj, action) {
     case 'save_existing':
       filterType = 'write'
       break
-    case 'load':
-    case 'list':
+    //case 'load':
+    //case 'list':
     default:
       filterType = 'read'
       break
@@ -686,9 +725,8 @@ AccessControlProcedure.prototype.applyFilters = function(filters, obj, action) {
       var filter = filters[i]
 
       switch(filter.access) {
-      case 'denied':
+        case 'denied':
           delete obj[filter.attribute]
-
           break
         case 'partial':
           if(filterType === 'read') {
