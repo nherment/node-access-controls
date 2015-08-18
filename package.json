@@ -1,6 +1,6 @@
 {
   "name": "access-controls",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "rule based access-controls engine for node.js (browser compatible)",
   "main": "index.js",
   "scripts": {
